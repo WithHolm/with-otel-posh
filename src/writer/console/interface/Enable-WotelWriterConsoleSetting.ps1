@@ -1,4 +1,4 @@
-function Enable-WotelWriterConsoleSettings {
+function Enable-WotelWriterConsoleSetting {
     [CmdletBinding()]
     param (
         [ValidateSet('enable', 'disable')]
@@ -34,28 +34,6 @@ function Enable-WotelWriterConsoleSettings {
         if ($TimestampFormat) {
             #checking is hard.. just use whatever..its just console output and user will see errors in their ways quickly
             $settings.timestamp_format = $TimestampFormat
-
-            # try {
-            #     $dts = [Datetime]::Now.ToString($TimestampFormat)
-            #     $null = [datetime]::ParseExact($dts, $TimestampFormat, [System.Globalization.CultureInfo]::InvariantCulture)
-            # } catch {
-            #     throw "Invalid timestamp format: $TimestampFormat"
-            # }
-
-            # $out = [datetime]::new(0)
-            # $culture = [System.Globalization.CultureInfo]::InvariantCulture
-            # if (!([datetime]::TryParseExact("01/01/1970", $TimestampFormat, $culture, [System.Globalization.DateTimeStyles]::None, [ref]$out))) {
-            # }
-            # $settings.timestamp_format = $TimestampFormat
-
-            # try{
-            #     $null = [datetime]::now.ToString($TimestampFormat)
-            # }
-            # catch{
-            #     Throw "Invalid timestamp format: $TimestampFormat"
-            # }
-
-            
         }
 
         if ($UseSeverityShortNames) {

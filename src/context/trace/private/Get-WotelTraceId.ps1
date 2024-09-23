@@ -9,5 +9,5 @@ function Get-WotelTraceId {
     param ()
     # return (Get-PSCallStack|select -Last 2)[0].InvocationInfo.HistoryId.ToString()
     $Root = (Get-PSCallStack | Select-Object -Last 2)[0]
-    return (New-GuidV5 -Name "$($Root.Command) $($Root.Arguments) $($Root.InvocationInfo.HistoryId)")
+    return (New-GuidV5 -Name "$($Root.Command) $($Root.Arguments) $($Root.InvocationInfo.HistoryId)").ToString()
 }

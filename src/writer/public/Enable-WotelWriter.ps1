@@ -10,7 +10,7 @@ function Enable-WotelWriter {
         [Parameter(
             ParameterSetName = "Writer"
         )]
-        [ValidateSet('Console')]
+        [ValidateSet('Console', 'Json')]
         [string]$Writer
     )
     dynamicparam {
@@ -32,7 +32,7 @@ function Enable-WotelWriter {
         #region get parameters for the specified "enable-wotelwriter" function.
         $WriterCommand = $PSBoundParameters['Writer'].substring(0, 1).ToUpper() + $PSBoundParameters['Writer'].substring(1)
         # $ExecutionContext.SessionState.InvokeCommand.GetCommand is a smidge slower :()
-        $Func = get-item "function:Enable-WotelWriter$WriterCommand`Settings"
+        $Func = get-item "function:Enable-WotelWriter$WriterCommand`Setting"
 
         if (!$Func) {
             Write-error "function for enabling $WriterCommand not found"

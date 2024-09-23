@@ -21,7 +21,6 @@ function Invoke-WotelWriterConsole {
                 boldOn  = Get-WotelAnsiStyle -Modes Bold
                 boldOff = Get-WotelAnsiStyle -Modes BoldOff
             }
-
         }
 
         #add color to ansi cache if not already calulated.
@@ -59,18 +58,22 @@ function Invoke-WotelWriterConsole {
         if ($Settings.use_short_names) {
             $sev = $Settings.short_names[$sev]
         }
-        
+
         $Out_Timestamp = $Timestamp.ToString($Settings.timestamp_format)
         $Out_Severity = "{0}{1}{2}{3}" -f $ansi[$SeverityText], $ansi.BoldOn, $sev, $ansi.Reset
         $Out_Resource = "{0}{1}{2}" -f $ansi.BoldOn, $Res, $ansi.Reset
-        
+
         if(!$Settings.disable_textwrap){
             $OutMsg = ConvertTo-WotelWriterConsoleWrappedString -Message $Body -Context "[$Out_Timestamp][$Out_Severity][$Out_Resource]" -Prefix "" -Suffix ""
         }
         else{
             $OutMsg = "[$Out_Timestamp][$Out_Severity][$Out_Resource] $Body"
         }
-        
+
+        #
+        if($global:Wotel_disable_writer_output -eq $true){
+            return
+        }
         Write-host $OutMsg
     }
     

@@ -24,6 +24,9 @@ Timestamp of the log. when the log was created. optional
 .PARAMETER TraceId
 TraceId of the log. generally historyid of the command that started the span
 
+.PARAMETER SkipConsole
+Skip writing to the console. only write to log
+
 .PARAMETER PassThru
 Pass the log object to the pipeline without writing to the console
 

@@ -22,5 +22,10 @@ function Invoke-WotelWriter {
                 Invoke-WotelWriterConsole @EventItem 
             }
         }
+        'json'{
+            if(!$IgnoreLogs){
+                Invoke-WotelWriterJson @EventItem -TraceId $TraceItem.id -SpanId $SpanItem.id
+            }
+        }
     }
 }

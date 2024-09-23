@@ -6,9 +6,11 @@ function Get-WotelSetting {
 
     $WotelSettings = $(Get-WotelSingleton).settings
     $used = @()
+    
     if([string]::IsNullOrEmpty($Key)){
         return $WotelSettings
     }
+
     $Key.Split(".")| ForEach-Object {
         if (!$WotelSettings.ContainsKey($_)) {
             throw "Setting '$_' not found in $($used -join '.')"

@@ -1,5 +1,6 @@
 ipmo .\With-Otel.psm1 -force
 
+# Enable-WotelWriter -Writer Json -LogFolder "$env:TEMP\wotel-logs"
 Write-host "Log level is set to 'info'"
 Set-WotelLogLevel -Severity info
 New-WotelSpan -DisplayName "Hello World" -Arguments "{}"

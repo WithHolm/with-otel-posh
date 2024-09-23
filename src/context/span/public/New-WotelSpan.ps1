@@ -104,12 +104,6 @@ function New-WotelSpan {
             }
         }
 
-        # if ($Callstack.Count -gt 1) {
-        #     $parent = $Callstack[1].InvocationInfo.HistoryId.ToString()
-        # } else {
-        #     $parent = $null
-        # }
-
         switch ($PSCmdlet.ParameterSetName) {
             "Custom" {
                 $span = @{
@@ -155,7 +149,8 @@ function New-WotelSpan {
         }
 
         $span.scopeAttributes = @{
-            historyId = $Callstack[0].InvocationInfo.HistoryId.ToString()
+            path = $File.FullName
+            CommandHistoryId = $Callstack[0].InvocationInfo.HistoryId.ToString()
             ScriptLineNumber = $Callstack[0].InvocationInfo.ScriptLineNumber
             ModuleName = $Callstack[0].InvocationInfo.MyCommand.ModuleName
         }
