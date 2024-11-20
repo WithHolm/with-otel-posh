@@ -1,10 +1,10 @@
-
+﻿
 <#
 .SYNOPSIS
 Generate a GUID based on a name (V5)
 
 .DESCRIPTION
-Generate a GUID based on a name (V5). Uses Md5 to generate the "source". not recommended for security purposes, but good enough for Open telemetry spans
+Generate a GUID based on a name (V5). Uses Md5 to generate the "source". not recommended for security purposes, but good enough for span and trace ids
 
 .PARAMETER Name
 The name to generate the GUID from
@@ -17,6 +17,7 @@ function New-GuidV5 {
     [OutputType([System.Guid])]
     param (
         [Parameter(Mandatory=$true)]
+        # [ValidateCount(0,3)]
         [string]$Name
     )
 
@@ -28,11 +29,9 @@ function New-GuidV5 {
         $strbuilder.Append(([byte]$_).ToString("x2")) | Out-Null
     }
 
-    # 
+    #
     $hash = $strbuilder.ToString()[0..31] -join ""
 
     # Generate a GUID from the byte array
     return [Guid]::new($hash)
 }
-
-# New-GuidV5 -Name "test"
