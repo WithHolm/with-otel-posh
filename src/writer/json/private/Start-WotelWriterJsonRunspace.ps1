@@ -1,18 +1,18 @@
-function Start-WotelWriterJsonRunspace {
+﻿function Start-WotelWriterJsonRunspace {
     [CmdletBinding()]
     param (
         [hashtable]$WriterMap
     )
-    
+
     begin {
-        
+
     }
-    
+
     process {
-        
+
     }
-    
+
     end {
-        
+
     }
 }

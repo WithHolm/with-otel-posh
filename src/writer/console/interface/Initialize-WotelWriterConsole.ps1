@@ -1,16 +1,17 @@
+﻿<#
+.SYNOPSIS
+creates a new settings object for the console writer
+#>
 function Initialize-WotelWriterConsole {
     [CmdletBinding()]
-    param (
-        
-    )
-    
-
+    param ()
+    $AnsiSupported = Test-WotelWriterConsoleAnsiSupported
     $ret = @{
-        disable_textwrap = $false
-        disable_ansi     = Test-WotelWriterConsoleAnsiSupported
+        enable_textwrap = $true
+        enable_ansi     = $AnsiSupported
+        style = "classic"
         dev_info_level   = [int]([PwshSeverity]::trace)
         use_short_names  = $true
-        loglevel         = Get-WotelLogLevel
         #todo: validate this
         timestamp_format = "hh:mm:ss.ff"
         colors           = @{

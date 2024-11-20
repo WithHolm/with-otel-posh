@@ -1,7 +1,7 @@
-function Get-WotelWriter {
+﻿function Get-WotelWriter {
     [CmdletBinding()]
     param (
-        
+
     )
     dynamicparam {
         #add dynamic param that has validateset of colors.json
@@ -21,12 +21,12 @@ function Get-WotelWriter {
     }
 
     begin {
-        
+
     }
-    
+
     process {
         $Settings = Get-WotelSetting
-        $Settings.writers.GetEnumerator()|%{
+        $Settings.writers.GetEnumerator()|ForEach-Object{
             Write-output ([pscustomobject]@{
                 Name = $_.key
                 Enabled = $_.key -in $Settings.enabled_writers
@@ -34,8 +34,8 @@ function Get-WotelWriter {
             })
         }
     }
-    
+
     end {
-        
+
     }
 }

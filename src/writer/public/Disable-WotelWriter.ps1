@@ -1,9 +1,9 @@
-function Disable-WotelWriter {
+﻿function Disable-WotelWriter {
     [CmdletBinding()]
     param (
-        
+
     )
-    
+
     dynamicparam {
         #add dynamic param that has validateset of colors.json
         $ParamAttrib = New-Object System.Management.Automation.ParameterAttribute
@@ -22,14 +22,14 @@ function Disable-WotelWriter {
     }
 
     begin {
-        
+
     }
-    
+
     process {
-        
+
     }
-    
+
     end {
-        
+
     }
 }

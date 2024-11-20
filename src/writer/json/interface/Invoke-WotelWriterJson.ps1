@@ -1,3 +1,22 @@
+﻿<#
+.SYNOPSIS
+Writes the log to json
+
+.PARAMETER Event
+Parameter description
+
+.PARAMETER TraceTimestamp
+Parameter description
+
+.PARAMETER TraceId
+Parameter description
+
+.PARAMETER SpanId
+Parameter description
+
+.NOTES
+General notes
+#>
 function Invoke-WotelWriterJson {
     [CmdletBinding()]
     param (
@@ -26,11 +45,11 @@ function Invoke-WotelWriterJson {
 
 
         # $strData = [System.Text.Encoding]::UTF8.GetBytes("$str")
-        $WriterSingleton = {
-            param(
+        # $WriterSingleton = {
+        #     param(
 
-            )
-        }
+        #     )
+        # }
         #it seems weiard, i know, but it generally just goes to last line, appends data and then writes the closing tag
 
         $FileStream = [System.IO.FileStream]::new($Path, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::ReadWrite)
@@ -53,6 +72,7 @@ function Invoke-WotelWriterJson {
         #add json data
         $OutData.add(($event|ConvertTo-Json -Compress))
 
+        #add new line and closing bracket
         $OutData.add("`r`n]")
 
         #write data to file
@@ -66,6 +86,6 @@ function Invoke-WotelWriterJson {
         $FileStream.Dispose()
     }
     end {
-        
+
     }
 }

@@ -1,11 +1,12 @@
 Describe "Enable-WotelWriterConsoleSettings" {
     InModuleScope 'With-Otel' {
         BeforeEach {
+            Initialize-WotelSingleton
             $settings = Get-WotelSetting -Key 'writers.console'
             Mock Write-host {$env:output}
         }
         context "-DisableTextwrap" {
-            it "should set disable_textwrap to <bool> on value '<str>'" -TestCases @(
+            it "should set Textwrap to <bool> on value '<str>'" -TestCases @(
                 @{
                     "bool" = $true
                     "str"  = "enable"
@@ -17,8 +18,8 @@ Describe "Enable-WotelWriterConsoleSettings" {
             ) {
                 param ($bool, $str)
                 # $settings = Get-WotelSetting -Key 'writers.console'
-                Enable-WotelWriterConsoleSettings -DisableTextwrap $str
-                $settings.disable_textwrap | Should -Be $bool
+                Enable-WotelWriterConsoleSetting -Textwrap $str
+                $settings.enable_textwrap | Should -Be $bool
             }
         }
 
@@ -35,8 +36,8 @@ Describe "Enable-WotelWriterConsoleSettings" {
             ) {
                 param ($bool, $str)
                 # $settings = Get-WotelSetting -Key 'writers.console'
-                Enable-WotelWriterConsoleSettings -DisableAnsi $str
-                $settings.disable_ansi | Should -Be $bool
+                Enable-WotelWriterConsoleSetting -Ansi $str
+                $settings.enable_ansi | Should -Be $bool
             }
         }
 
@@ -53,7 +54,7 @@ Describe "Enable-WotelWriterConsoleSettings" {
             ) {
                 param ($bool, $str)
                 # $settings = Get-WotelSetting -Key 'writers.console'
-                Enable-WotelWriterConsoleSettings -UseSeverityShortNames $str
+                Enable-WotelWriterConsoleSetting -UseSeverityShortNames $str
                 $settings.use_short_names | Should -Be $bool
             }
         }
@@ -70,14 +71,14 @@ Describe "Enable-WotelWriterConsoleSettings" {
             it "should not be touched if value is not provided" {
                 $settings = Get-WotelSetting -Key 'writers.console'
                 $settings.dev_info_level = [PwshSeverity]::debug
-                Enable-WotelWriterConsoleSettings
+                Enable-WotelWriterConsoleSetting
                 $settings.dev_info_level.ToString() | Should -Be 'debug'
             }
             
             it "should set dev_info_level to <str>" -TestCases $DevInfoTestCases {
                 param ($str)
                 $settings = Get-WotelSetting -Key 'writers.console'
-                Enable-WotelWriterConsoleSettings -DevInfoLevel $str
+                Enable-WotelWriterConsoleSetting -DevInfoLevel $str
                 $settings.dev_info_level.ToString() | Should -Be $str
             }
         }
@@ -95,8 +96,7 @@ Describe "Enable-WotelWriterConsoleSettings" {
                 }
             ) {
                 param ($str)
-                # $settings = Get-WotelSetting -Key 'writers.console'
-                Enable-WotelWriterConsoleSettings -TimestampFormat $str
+                Enable-WotelWriterConsoleSetting -TimestampFormat $str
                 $settings.timestamp_format | Should -Be $str
             }
 
@@ -109,4 +109,3 @@ Describe "Enable-WotelWriterConsoleSettings" {
         }
     }
 }
-# InModuleScope "With-Otel" {}

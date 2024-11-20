@@ -11,7 +11,7 @@ Describe "Invoke-WotelWriterConsole" {
             $global:Wotel_disable_writer_output = $false
         }
         BeforeEach {
-            Enable-WotelWriter -Writer Console -DisableAnsi enable -DisableTextwrap enable
+            Enable-WotelWriter -Writer Console -Ansi disable -Textwrap disable
             # $settings = Get-WotelSetting -Key 'writers.console'
             # $settings.disable_textwrap = $true
             # $settings.disable_ansi = $true
@@ -19,7 +19,7 @@ Describe "Invoke-WotelWriterConsole" {
         }
 
         it "should write to host with default settings" {
-            $param = @{
+            $Event = [WotelLog]@{
                 Type = "log"
                 Timestamp = [datetime]::Now
                 Attributes = @{
@@ -30,7 +30,7 @@ Describe "Invoke-WotelWriterConsole" {
                 SeverityText = "Verbose"
                 SeverityNumber = 1
             }
-            Invoke-WotelWriterConsole @param
+            Invoke-WotelWriterConsole -EventItem $Event
             # write-warning "$global:output"
             $global:output | Should -BeLike "*$($param.Body)*" #-Contain $param.Body
         }

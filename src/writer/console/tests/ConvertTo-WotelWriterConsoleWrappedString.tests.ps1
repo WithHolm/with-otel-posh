@@ -3,10 +3,10 @@ Describe "ConvertTo-WotelWriterConsoleWrappedString" {
         BeforeAll {
             #mock Get-BoltConsoleWindowSize
             Mock Get-WotelWriterConsoleWindowSize -MockWith {
-                if ($global:pester_console_width -eq $null) {
-                    $global:pester_console_width = 10
+                if ($env:pester_console_width -eq $null) {
+                    $env:pester_console_width = 10
                 }
-                return [System.Drawing.Rectangle]::new(0, 0, $global:pester_console_width, 10)
+                return [System.Drawing.Rectangle]::new(0, 0, $env:pester_console_width, 10)
             }
         }
 
@@ -15,7 +15,7 @@ Describe "ConvertTo-WotelWriterConsoleWrappedString" {
                 Message = "message"
                 Context = "context"
             }
-            $global:pester_console_width = 20
+            $env:pester_console_width = 20
             $Return = ConvertTo-WotelWriterConsoleWrappedString @param
             # Write-host $Return
             $Return.Count | Should -Be 1
@@ -30,7 +30,7 @@ Describe "ConvertTo-WotelWriterConsoleWrappedString" {
                 Context = "context"
             }
 
-            $global:pester_console_width = 20
+            $env:pester_console_width = 21
             $Return = ConvertTo-WotelWriterConsoleWrappedString @param
             <#
             context pesterpester
@@ -38,7 +38,7 @@ Describe "ConvertTo-WotelWriterConsoleWrappedString" {
             #>
             $Return.Count | Should -Be 2
             for ($i = 0; $i -lt $return.Count; $i++) {
-                $return[$i].length | Should -BeLessOrEqual $global:pester_console_width -Because "line $i should be shorter than console width"
+                $return[$i].length | Should -BeLessOrEqual $env:pester_console_width -Because "line $i should be shorter than console width"
             }
             $Return[0] | Should -Be "$($param.Context) pesterpester"
             $Return[1] | Should -Be "$(" "*$param.Context.Length) pester"

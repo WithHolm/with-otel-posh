@@ -1,4 +1,30 @@
-#TODO:CREATE FUCKING TESTS FOR THIS
+﻿
+<#
+.SYNOPSIS
+Returns ansi codes for the current console
+
+.PARAMETER HexColor
+color in hex format
+
+.PARAMETER NamedColor
+color in named format
+
+.PARAMETER Modes
+if ya want bold, italic, underline, strikethrough etc
+
+.PARAMETER ForOrBackgGround
+if the color is for the foreground or background
+
+.PARAMETER Reset
+for ansi reset
+
+.EXAMPLE
+Get-WotelAnsiStyle -NamedColor "Red" -mode bold
+#would return "`e[38;2;255;0;0m" (its invisible if you just write it to console)
+
+.NOTES
+#TODO:CREATE TESTS FOR THIS
+#>
 function Get-WotelAnsiStyle {
     [CmdletBinding(
         DefaultParameterSetName = "NonReset"
@@ -9,13 +35,13 @@ function Get-WotelAnsiStyle {
             ParameterSetName = 'NonReset'
         )]
         [string]$HexColor,
-        
+
         [parameter(
             ParameterSetName = 'NonReset'
         )]
         [ValidateSet('Bold', "BoldOff", 'Italic', "ItalicOff", 'Underline', "UnderlineOff", 'Strikethrough', "StrikethroughOff")]
         [string[]]$Modes,
-        
+
         [parameter(
             ParameterSetName = 'NonReset'
         )]
@@ -65,8 +91,8 @@ function Get-WotelAnsiStyle {
             try {
                 [void][system.drawing.color]::FromKnownColor([System.Drawing.KnownColor]::Black)
             } catch {
-                New-WotelLog -Body "Failed to load System.Drawing.Color" -Severity fatal
-                # New-WotelLog -CmdEvent End
+                Write-WotelLog -Body "Failed to load System.Drawing.Color" -Severity fatal
+                # Write-WotelLog -CmdEvent End
                 throw "Failed to load System.Drawing.Color"
             }
         }
@@ -77,20 +103,20 @@ function Get-WotelAnsiStyle {
         }
         $Return = [System.Collections.Generic.List[string]]::new()
     }
-    
+
     process {
         $NamedColor = $PSBoundParameters['NamedColor']
         if ($NamedColor -and $HexColor) {
-            New-WotelLog -Body "Cannot use both NamedColor and HexColor" -Severity fatal
+            Write-WotelLog -Body "Cannot use both NamedColor and HexColor" -Severity fatal
             throw "Cannot use both NamedColor and HexColor"
         }
 
         if (![string]::IsNullOrEmpty($NamedColor)) {
             $Key = "Named_$NamedColor"
             if (!$Script:ColorCache.ContainsKey($Key)) {
-                New-WotelLog -body "Converting named color '$NamedColor' to color" -Severity system
+                Write-WotelLog -body "Converting named color '$NamedColor' to color" -Severity system
                 if (!$script:DrawingColor) {
-                    New-WotelLog "Loading colors.json" -Severity system
+                    Write-WotelLog "Loading colors.json" -Severity system
                     $script:DrawingColor = [System.IO.File]::ReadAllText("$psscriptroot\colors.json") | ConvertFrom-Json
                 }
                 $json = $script:DrawingColor
@@ -98,7 +124,7 @@ function Get-WotelAnsiStyle {
                 :colorsearch for ($i = 0; $i -lt $Json.Count; $i++) {
                     if ($Json[$i].name -eq $NamedColor) {
                         $Color = [System.Drawing.Color]::FromArgb($Json[$i].A, $Json[$i].R, $Json[$i].G, $Json[$i].B)
-                        New-WotelLog -Body "Found color '$NamedColor' in colors.json, $($Color.R), $($Color.G), $($Color.B)" -Severity system
+                        Write-WotelLog -Body "Found color '$NamedColor' in colors.json, $($Color.R), $($Color.G), $($Color.B)" -Severity system
                         $Script:ColorCache[$Key] = $Color
                         break :colorsearch
                         # return $return
@@ -110,14 +136,14 @@ function Get-WotelAnsiStyle {
             $Key = "Hex_$HexColor"
 
             if (!$Script:ColorCache.ContainsKey($Key)) {
-                New-WotelLog -Body "Converting hex '$HexColor' to color" -Severity system
+                Write-WotelLog -Body "Converting hex '$HexColor' to color" -Severity system
                 #remove the # if it exists
                 $HexColor = $HexColor.ToLower() -replace '^#', ''
                 # Convert hex to RGB
                 $R = [System.Convert]::ToInt32($HexColor.Substring(0, 2), 16)
                 $G = [System.Convert]::ToInt32($HexColor.Substring(2, 2), 16)
                 $B = [System.Convert]::ToInt32($HexColor.Substring(4, 2), 16)
-                # New-WotelLog -CmdEvent End
+                # Write-WotelLog -CmdEvent End
                 # Create System.Drawing.Color
                 # $Color = [System.Drawing.Color]::FromArgb($R, $G, $B)
                 $Script:ColorCache[$Key] = [System.Drawing.Color]::FromArgb($R, $G, $B)
@@ -127,7 +153,7 @@ function Get-WotelAnsiStyle {
         }
 
         if ($Color) {
-            # New-WotelLog "Color is $Color, ground is '$ForOrBackgGround'" -Severity system
+            # Write-WotelLog "Color is $Color, ground is '$ForOrBackgGround'" -Severity system
             if ($ForOrBackgGround -eq 'Foreground') {
                 $Return.Add(("38;2;{0};{1};{2}m" -f $Color.R, $Color.G, $Color.B))
                 # $Return += "e[38;2;{0};{1};{2}" -f $Color.R, $Color.G, $Color.B
@@ -152,20 +178,20 @@ function Get-WotelAnsiStyle {
                 Strikethrough    = "9"
                 StrikethroughOff = "29"
             }
-            $Modes | % {
+            $Modes | ForEach-Object {
                 $Return.Add(("{0}m" -f $ModeHash[$_]))
             }
         }
 
-        $return = $Return | % {
-            New-WotelLog -Body "Returning ansi code ``e[$_" -Severity system
+        $return = $Return | ForEach-Object {
+            Write-WotelLog -Body "Returning ansi code ``e[$_" -Severity system
             "`e[$_"
         }
 
         return $($return -join "")
     }
-    
+
     end {
-        
+
     }
 }

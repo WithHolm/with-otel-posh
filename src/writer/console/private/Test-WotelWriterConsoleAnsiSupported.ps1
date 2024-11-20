@@ -1,9 +1,14 @@
+﻿<#
+.SYNOPSIS
+Test if the console supports ansi. returns true if it does, false if it doesn't
+#>
 function Test-WotelWriterConsoleAnsiSupported {
     [CmdletBinding()]
+    [OutputType([bool])]
     param (
-        
+
     )
-    
+
     if ($host.PrivateData.ToString() -eq 'Microsoft.PowerShell.Host.ISE.ISEOptions') {
        return $false
     }

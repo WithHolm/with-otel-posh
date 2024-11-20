@@ -1,12 +1,31 @@
+﻿<#
+.SYNOPSIS
+Enables a writer
+
+.DESCRIPTION
+Enables a writer. this will add the writer to the list of enabled writers
+
+.PARAMETER InputObject
+Parameter description
+
+.PARAMETER Writer
+Parameter description
+
+.EXAMPLE
+An example
+
+.NOTES
+General notes
+#>
 function Enable-WotelWriter {
     [CmdletBinding(
         DefaultParameterSetName = 'Writer'
     )]
     param (
-        [parameter(
-            ParameterSetName = 'InputObject'
-        )]
-        [PscustomObject]$InputObject,
+        # [parameter(
+        #     ParameterSetName = 'InputObject'
+        # )]
+        # [PscustomObject]$InputObject,
         [Parameter(
             ParameterSetName = "Writer"
         )]
@@ -15,9 +34,9 @@ function Enable-WotelWriter {
     )
     dynamicparam {
         #save compute if we are not using the InputObject parameter
-        if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
-            return
-        }
+        # if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
+        #     return
+        # }
 
         # #dict to return to runtime. represents param()
         $RuntimeParamDic = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
@@ -53,10 +72,12 @@ function Enable-WotelWriter {
             'WarningVariable'
             'ErrorAction'
             'ErrorVariable'
+            "progressAction"
         )
         Write-debug "found function: $Func, parameters: $($Func.parameters.Count)"
 
-        $Func.parameters.Values.Where{ $_.name -notin $ExcludeParams } | % {
+        #foreach found param, add it to the runtimeparamdic
+        $Func.parameters.Values.Where{ $_.name -notin $ExcludeParams } | ForEach-Object {
             Write-Debug "adding parameter $($_.name) from function $($Func.name)"
             #lets hope its this simple? edit: it is :)
             $param = $_
@@ -71,7 +92,7 @@ function Enable-WotelWriter {
     begin {
         $Writers = @()
     }
-    
+
     process {
         if ($PSCmdlet.ParameterSetName -eq 'InputObject') {
             if ($InputObject.Enabled) {
@@ -81,21 +102,30 @@ function Enable-WotelWriter {
             $Writers += $writer
 
             $params = @{}
-            $PSBoundParameters.Keys | ? { $_ -ne 'Writer' } | % {
+            $PSBoundParameters.Keys | Where-Object { $_ -ne 'Writer' } | ForEach-Object {
                 $params[$_] = $PSBoundParameters[$_]
             }
             if ($params.count -gt 0) {
-                #if i can exchange this with a actual invokation with hashtable splatting it will be faster
-                [scriptblock]::create("param(`$opts)$($Func.Name) @opts").Invoke($params)
+                try{
+                    #if i can exchange this with a actual invokation with hashtable splatting it will be faster
+                    [scriptblock]::create("param(`$opts) $($Func.Name) @opts").Invoke($params)
+                }
+                catch{
+                    Throw "Failed to invoke writer $($Func.Name) with parameters $($params|ConvertTo-Json)"
+                }
             }
         }
     }
     end {
         $Settings = Get-WotelSetting
         $Writers | ForEach-Object {
-            if (!$Settings.enabled_writers.Contains($_)) {
+            # $Settings.enabled_writers += $_
+
+            if ($_ -notin $Settings.enabled_writers) {
+                Write-WotelLog -Body "Enabling writer $_" -Severity system -SkipConsole
                 $Settings.enabled_writers += $_
             }
+            $Settings.enabled_writers = $Settings.enabled_writers|Select-Object -Unique
         }
     }
 }

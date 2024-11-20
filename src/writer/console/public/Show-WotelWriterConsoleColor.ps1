@@ -1,12 +1,14 @@
-function Show-WotelWriterConsoleColors {
+﻿<#
+.SYNOPSIS
+returns a list of all ansi colors currently used by the console writer, including example of how it looks
+#>
+function Show-WotelWriterConsoleColor {
     [CmdletBinding()]
-    param (
-        
-    )
-    
+    param ()
+
     $Reset = Get-WotelAnsiStyle -Reset
     $Settings = Get-WotelSetting -Key "writers.console"
-    $Settings.colors.GetEnumerator()|%{
+    $Settings.colors.GetEnumerator()|ForEach-Object{
         $ColorAnsi = "default"
         if($_.value){ #if its not null..
             $ColorAnsi = Get-WotelAnsiStyle -NamedColor $_.value -ForOrBackgGround Foreground

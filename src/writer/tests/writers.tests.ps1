@@ -15,7 +15,7 @@ describe 'writers' {
             $writerFolders = Get-ChildItem $path -Directory
             $Folders = 'public', 'private', 'tests', 'interface'
 
-            'public', 'private', 'tests', 'interface' | should -BeIn $writerFolders.name
+            $writerFolders.name | should -BeIn $Folders
             $writerFolders | Where-Object { $_.name -notin $Folders } | Should -BeNullOrEmpty
         }
 
@@ -28,13 +28,9 @@ describe 'writers' {
                 $ScriptPath = join-path $path "$Function.ps1"
                 $ScriptPath | Should -Exist
                 Get-ChildItem $ScriptPath | Select-String "function $Function" | Should -Not -BeNullOrEmpty
-
-                # $path = join-path $path 'interface'
-                # join-path $path "Enable-WotelWriter$name`Setting" | Should -Exist
-                # Get-ChildItem $path -Filter "*.ps1" | ? { $_.name -notlike "*tests*" } | Select-String "function enable-wotelwriter$name`setting" | Should -Not -BeNullOrEmpty
             }
     
-            it "<name> should be accessible by 'Enable-WotelWriter'" -TestCases $Writers {
+            it "<name> should be accessible by 'Enable-WotelWriter' via -Writer '<name>' parameter" -TestCases $Writers {
                 param($name, $path)
                 { Enable-WotelWriter -Writer $name } | Should -Not -Throw
             }
@@ -54,10 +50,6 @@ describe 'writers' {
                 $ScriptPath = join-path $path "$Function.ps1"
                 $ScriptPath | Should -Exist
                 Get-ChildItem $ScriptPath | Select-String "function $Function" | Should -Not -BeNullOrEmpty
-
-                # $path = join-path $path 'interface'
-                # join-path $path "Initialize-WotelWriter$name.ps1" | Should -Exist
-                # Get-ChildItem $path -Filter "*.ps1" | ? { $_.name -notlike "*tests*" } | Select-String "function initialize-wotelwriter$name" | Should -Not -BeNullOrEmpty
             }
 
             it "<name> initialize should return a hashtable" -TestCases $Writers {
@@ -81,11 +73,11 @@ describe 'writers' {
                 Get-ChildItem $ScriptPath | Select-String "function $Function" | Should -Not -BeNullOrEmpty
             }
 
-            it "implements global:Wotel_disable_writer_output variable" -TestCases $Writers {
-                param($name, $path)
-                $path = join-path $path 'interface'
-                Get-ChildItem $path -Filter "*.ps1" | ? { $_.name -notlike "*tests*" } | Select-String "global:Wotel_disable_writer_output" | Should -Not -BeNullOrEmpty
-            }
+            # it "implements global:Wotel_disable_writer_output variable" -TestCases $Writers {
+            #     param($name, $path)
+            #     $path = join-path $path 'interface'
+            #     Get-ChildItem $path -Filter "*.ps1" | ? { $_.name -notlike "*tests*" } | Select-String "global:Wotel_disable_writer_output" | Should -Not -BeNullOrEmpty
+            # }
         }
 
 

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
 Formats one or more lines of text to fit within the console width, tabbing the message from the context so a multiline message only needs one message
 
@@ -39,12 +39,11 @@ function ConvertTo-WotelWriterConsoleWrappedString {
     param (
         [string[]]$Message,
         [string]$Context,
-        [string]$Prefix,
-        [string]$Suffix
+        [int]$ContextLength
     )
 
     begin {
-        New-WotelSpan -OutputToConsole Disabled #-DisplayName 'console.wrappedstring'
+        New-WotelSpan -OutputToConsole Disabled
         $Return = [System.Collections.Generic.List[String]]::new()
     }
     process {
@@ -52,14 +51,18 @@ function ConvertTo-WotelWriterConsoleWrappedString {
         $Message = $Message.split("`r`n") | ForEach-Object { $_.trim() } | Where-Object { $_ }
 
         #cmdlet for pester mocking, but its essentially console width
-        $ConsoleWidth = (Get-WotelWriterConsoleWindowSize).Width
-        $ContextLength = $Context.Length +2
+        $ConsoleWidth = (Get-WotelWriterConsoleWindowSize).Width - 2
+        if(!$ContextLength){
+            $ContextLength = $Context.Length
+        }
         $MaxMsgLength = ($ConsoleWidth - $ContextLength)
 
-        New-WotelLog "Console width is $ConsoleWidth" -Severity system
-        New-WotelLog "Max msg length is $MaxMsgLength" -Severity system
-        New-WotelLog "Context length is $ContextLength" -Severity system
 
+        Write-WotelLog "Console width is $ConsoleWidth" -Severity system
+        Write-WotelLog "Max msg length is $MaxMsgLength" -Severity system
+        Write-WotelLog "Context length is $ContextLength" -Severity system
+
+        #todo: split the message to newlines on spaces, periods or commas to enhance readability
         for ($i = 0; $i -lt $Message.Count; $i++) {
             # $First = $i -eq 0
             $msg = $Message[$i]
@@ -76,29 +79,22 @@ function ConvertTo-WotelWriterConsoleWrappedString {
 
             #handle last line
             if(![string]::IsNullOrEmpty($msg)){
-                # if($First){
-                #     $ThisMsg = $context,$msg -join " "
-                #     New-WotelLog "Appending context to first line: '$ThisMsg'" -Severity system
-                # }
-                # else{
-                #     $ThisMsg = (" "*$Context.Length),$msg -join " "
-                # }
-
                 $Return.Add("$Prefix$Msg$Suffix")
             }
         }
     }
     end {
+        
         if($Return.count -gt 0){
-
             #append context to first line
-            New-WotelLog "Appending context ($context) to first line" -Severity system
+            Write-WotelLog "Appending context ($context) to first line" -Severity system
             $Return[0] = "$Context $($Return[0])"
             for ($i = 1; $i -lt $Return.Count; $i++) {
-                $Return[$i] = "$(" "*$Context.Length) $($Return[$i])"
+                Write-WotelLog "Line $i is $($Return[$i].Length) long" -Severity system
+                $Return[$i] = "$(" "*$ContextLength) $($Return[$i])"
             }
         }
-        New-WotelLog "Returning $($Return.Count) lines" -Severity system
+        Write-WotelLog "Returning $($Return.Count) lines" -Severity system
         return $Return
     }
 
