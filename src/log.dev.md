@@ -6,7 +6,7 @@ Trace -> from when you started the ps1 script
 span -> from when you started a new command
 event -> Thing that happened inside the span. this can be a log, or a metric
 
-if you use `New-WotelLog` you can write a new log event to the current span
+if you use `Write-WotelLog` you can write a new log event to the current span
 you can append a spanid to log to any span if you want, but if you dont i will assume you mean the current span. (ie you can call the span 'Writing to file', while the command is 'write-FileCommand').
 
 
