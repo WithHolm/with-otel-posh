@@ -1,4 +1,4 @@
-
+﻿
 <#
 .SYNOPSIS
 Generate a log line, with full controll over the object being created. i am assuing a span and trace for this to be put in has been created
@@ -31,14 +31,16 @@ Skip writing to the console. only write to log
 Pass the log object to the pipeline without writing to the console
 
 #>
-function New-WotelLog {
+function Write-WotelLog {
     [CmdletBinding(
         DefaultParameterSetName = "Callstack"
     )]
+    [OutputType([hashtable])]
     param (
         [parameter(
             Mandatory,
-            Position = 0
+            Position = 0,
+            ValueFromPipeline
         )]
         [string]$Body,
 
@@ -58,70 +60,61 @@ function New-WotelLog {
         )]
         [System.Management.Automation.CallStackFrame[]]$Callstack = (Get-PSCallStack),
 
-        [switch]$SkipConsole,
-        [switch]$PassThru
+        [switch]$SkipConsole
     )
     begin {
-        $traceObj = Get-WotelTrace
-
-        if ($PSCmdlet.ParameterSetName -eq 'Callstack') {
-            $SpanId = Get-WotelSpanId -Callstack $Callstack
+        if($PSCmdlet.ParameterSetName -eq 'custom'){
+            $span = Get-WotelSpan -SpanId $SpanId
+        }else{
+            $span = Get-WotelSpan -Callstack $Callstack
         }
 
-        if ($null -eq $traceObj) {
-            Throw "Could not find a TraceId $TraceId does not exist"
+        if(!$span){
+            $span = New-WotelSpan -Callstack $Callstack -PassThru
         }
 
-        if (!$traceObj.spans.ContainsKey($SpanId)) {
-            if ($pscmdlet.ParameterSetName -eq 'Callstack') {
-                New-WotelSpan -Callstack $Callstack
-            } else {
-                Throw "SpanId $SpanId does not exist in trace $TraceId"
+        if(!$span){
+            Get-PSCallStack|ForEach-Object{
+                Write-Host $_
             }
+            throw "Could not find or create a new span.. this should not happen"
         }
-
-        $SpanObj = $traceObj.spans.$SpanId
-
-        if ("Enabled" -in $SpanObj.options.IgnoreLogs, $traceObj.options.IgnoreLogs) {
-            return
-        }
-
     }
     process {
         #this is the events inside the span. this is the log
-        $EventItem = @{
-            Type           = "log"
-            Timestamp      = $TimestampUtc
-            Attributes     = @{
+        $EventItem = [WotelLog]@{
+            type           = [WotelEventType]::Log
+            attributes = @{
                 CreationType = $PSCmdlet.ParameterSetName
-
                 #this is used in invoke console writer, please keep in sync
                 Source       = @($Callstack[0].Command, $Callstack[0].ScriptLineNumber) -join ":"
                 LineNumber   = $Callstack[0].ScriptLineNumber
                 CustomResource = $true
                 optionSkipConsole = $SkipConsole
             }
-            Resource       = $Resource
-            SeverityText   = $Severity.ToString()
-            SeverityNumber = [int]$Severity
-            Body           = ($body -join "") -replace "`r", "`r`n"
+            resource = $Resource
+            timestamp = $TimestampUtc
+            severityText = $Severity.ToString()
+            severityNumber = [int]$Severity
+            body = ($body -join "") -replace "`r", "`r`n"
         }
 
         if ([string]::IsNullOrEmpty($resource)) {
-            $EventItem.Resource = $SpanObj.name
+            $EventItem.Resource = $span.name
             $EventItem.Attributes.CustomResource = $false
         }
 
-        $SpanObj.events.Add($EventItem)
+        $null = $span.events.Add($EventItem)
 
         if ($PassThru) {
             return $EventItem
         }
-
-
-        Invoke-WotelWriter -EventItem $EventItem -SpanItem $SpanObj -TraceItem $traceObj
+        
+        Start-WotelSelfMetricStopwatch -Name 'log-write' -Append
+        Invoke-WotelWriter -EventItem $EventItem -Span $span -Trace (Get-WotelTrace)
+        Stop-WotelSelfMetricStopwatch -Name 'log-write'
     }
     end {}
 }
 
-# New-WotelLog "test"  
+# Write-WotelLog "test"

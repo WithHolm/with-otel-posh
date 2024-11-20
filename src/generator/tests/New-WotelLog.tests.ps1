@@ -1,9 +1,8 @@
-Describe "New-WotelLog" {
-    InModuleScope bolt.core {
+Describe "Write-WotelLog" {
+    InModuleScope "With-Otel" {
         It "Creates a log" {
-            $global:wotel = $null
             New-WotelSpan
-            $Log = New-WotelLog -Body "test" -Severity info -SkipConsole
+            $Log = Write-WotelLog -Body "test" -Severity info -SkipConsole
         }
     }
 }
