@@ -1,5 +1,5 @@
 Describe "Set-WotelLogLevel" {
-    InModuleScope 'bolt.core' {
+    InModuleScope 'With-Otel' {
         BeforeDiscovery {
             $PwshLogLevels = [enum]::GetNames(([PwshSeverity])) | % {
                 @{
@@ -8,21 +8,22 @@ Describe "Set-WotelLogLevel" {
                     Enum = ([PwshSeverity]$_)
                 }
             }
+            Initialize-WotelSingleton
         }
         it "Should be able to increase the log level" {
-            $env:OTEL_LOG_LEVEL = ([int]([PwshSeverity]::trace))
+            $env:WOTEL_LOG_LEVEL = ([int]([PwshSeverity]::trace))
             { Set-WotelLogLevel -Severity info } | should -not -Throw
-            $env:OTEL_LOG_LEVEL | should -be ([int]([PwshSeverity]::info))
+            $env:WOTEL_LOG_LEVEL | should -be ([int]([PwshSeverity]::info))
         }
 
-        it "Should set env:OTEL_LOG_LEVEL to <int> when level '<name>' is defined" -TestCases  $PwshLogLevels {
+        it "Should set env:WOTEL_LOG_LEVEL to <int> when level '<name>' is defined" -TestCases  $PwshLogLevels {
             param(
                 [string]$Name,
                 [int]$int,
                 [PwshSeverity]$Enum
             )
             Set-WotelLogLevel -Severity $Name -Verbose:$false -Debug:$false -WarningAction SilentlyContinue
-            $env:OTEL_LOG_LEVEL | should -be $int
+            $env:WOTEL_LOG_LEVEL | should -be $int
         }
 
         it "Should be overidden by <Name> level if $<var> is '<value>' and its lower than the current log level" -TestCases @(
@@ -60,7 +61,7 @@ Describe "Set-WotelLogLevel" {
             $severity = [PwshSeverity]$name
 
             Set-WotelLogLevel -Severity throwing @param
-            $env:OTEL_LOG_LEVEL | should -be ([int]($severity))
+            $env:WOTEL_LOG_LEVEL | should -be ([int]($severity))
         }
     }
 }

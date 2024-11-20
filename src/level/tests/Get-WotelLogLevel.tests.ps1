@@ -1,5 +1,5 @@
 Describe "Get-WotelLogLevel" {
-    InModuleScope 'bolt.core' {
+    InModuleScope 'With-Otel' {
         BeforeDiscovery {
             $PwshLogLevels = [enum]::GetNames(([PwshSeverity])) | % {
                 @{
@@ -10,7 +10,7 @@ Describe "Get-WotelLogLevel" {
             }
         }
         BeforeAll {
-            Set-WotelSpanOptions -OutputToConsole Disabled
+            Set-WotelSpanOption -OutputToConsole Disabled
         }
 
         it "should return 'pwshSeverity' enum"{
@@ -18,19 +18,15 @@ Describe "Get-WotelLogLevel" {
         }
 
         it "should return a severity 'info' if no env variable has been defined" {
-            $env:OTEL_LOG_LEVEL = $null
+            $env:WOTEL_LOG_LEVEL = $null
+            Initialize-WotelSingleton
             (Get-WotelLogLevel).GetType().name | should -Be ([PwshSeverity]::info).gettype().name
         }
 
         it "should return severity::info if no env has been defined" {
-            $env:OTEL_LOG_LEVEL = $null
+            $env:WOTEL_LOG_LEVEL = $null
+            Initialize-WotelSingleton
             Get-WotelLogLevel | should -Be 'info'
-        }
-
-        it "should set env:OTEL_LOG_LEVEL if no env has been defined" {
-            $env:OTEL_LOG_LEVEL = $null
-            Get-WotelLogLevel | out-null
-            $env:OTEL_LOG_LEVEL | should -be ([int]([OtelSeverity]::info))
         }
 
         it "should return value '<Name>' if int <int> is set as log level" -TestCases $PwshLogLevels {
@@ -39,7 +35,8 @@ Describe "Get-WotelLogLevel" {
                 [int]$int,
                 [OtelSeverity]$Enum
             )
-            $env:OTEL_LOG_LEVEL = $int
+            $env:WOTEL_LOG_LEVEL = $int
+            Initialize-WotelSingleton
             Get-WotelLogLevel | should -be $Enum
         }
     }
