@@ -1,9 +1,11 @@
-<#
+﻿<#
 .SYNOPSIS
 Adds a trace context for the current command or a chosen custom span
 
 .DESCRIPTION
-Adds a trace context for the current command or a chosen custom span. This is used to track the execution of a command through the system.
+Adds a trace context for the current command or a chosen custom span.
+This is used to track the execution of a command through the system.
+This is automatically called when writing logs, so you don't need to call it yourself.
 
 .PARAMETER DisplayName
 Name to be emitted through log resource. If not provided, the command name will be used.
@@ -14,19 +16,43 @@ Arguments to be emitted through log resource. mostly for log, but you should emi
 .PARAMETER OutputToConsole
 If set to "Disabled", the span will not be written to the console. This is useful for when you want to preserve log, but not for consumption at runtime
 
-.PARAMETER IgnoreLogs
-Will ignore all the logs for the span. Useful instead of commenting out each log line in script
+.PARAMETER OutputToLogs
+Will output to logs for the span. Useful instead of commenting out each log line in script. logs in this case is all writers that are not console
 
 .PARAMETER Callstack
-Parameter description
+Only used if you need to create a span for a custom span. else, just use the default.
 
-.EXAMPLE 
-An example
+.EXAMPLE
+New-WotelSpan -DisplayName "test"
+
+.EXAMPLE
+#log from a external source. note that the name
+$Args = @(
+    "-i 'inputfile.gif'",
+    "'outputfile.gif'",
+    "-y"
+)
+$FfmpegPath = (get-command ffmpeg).source
+New-WotelSpan -DisplayName 'ffmpeg' -Arguments $Args -File $FfmpegPath
+$Command = "$FfmpegPath $($Args -join " ") *>&1"
+
+Write-WotelLog -Body 'running ffmpeg..'
+#create scriptblock so args can be passed to ffmpeg execution
+#FFMPEEG will write to stderr, so we need to redirect stderr to stdout..
+[scriptblock]::Create($Command).Invoke()|Write-WotelLog -SpanId 'ffmpeg' -Severity info
+
+#outputs:
+[10:19:16.19][trce][ffmpeg] Started span - Name:ffmpeg - arguments: -i 'inputfile.gif', 'outputfile.gif', -y
+[10:38:50.36][info][tesfile.ps1] running ffmpeg..
+[10:19:17.00][info][ffmpeg] ffmpeg version 6.1-full_build-www.gyan.dev Copyright (c) 2000-2023 the FFmpeg developers
+
+.EXAMPLE
 
 .NOTES
 General notes
 #>
 function New-WotelSpan {
+    [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = "Does not change system state", Scope = 'function')]
     [CmdletBinding(
         DefaultParameterSetName = "Callstack"
     )]
@@ -44,7 +70,7 @@ function New-WotelSpan {
             ParameterSetName = "Custom"
         )]
         [ValidateNotNullOrEmpty()]
-        [string]$Arguments,
+        [string[]]$Arguments,
 
         [parameter(
             ParameterSetName = "Custom"
@@ -60,110 +86,129 @@ function New-WotelSpan {
         [parameter(
             ParameterSetName = "Custom"
         )]
-        # [ValidateNotNullOrEmpty()]
         [System.IO.FileInfo]$File,
 
-        [ValidateSet("Enabled", "Disabled")]
-        [String]$OutputToConsole = "Enabled",
-        
-        [ValidateSet("Enabled", "Disabled")]
-        [string]$IgnoreLogs = "Enabled",
+        # [ValidateSet("Enabled", "Disabled")]
+        [WotelEnabled]$OutputToConsole = "Enabled",
+
+        # [ValidateSet("Enabled", "Disabled")]
+        [WotelEnabled]$OutputToLogs = "Enabled",
 
         [parameter(
             ParameterSetName = "Callstack"
-            # Mandatory
         )]
         [ValidateNotNullOrEmpty()]
-        # the default value
-        [System.Management.Automation.CallStackFrame[]]$Callstack = (Get-PSCallStack)
-    )
-    begin {}
-    process {
-        # $Root = (Get-PSCallStack)[-2]
-        #add trace if not exists
-        New-WotelTrace
+        [System.Management.Automation.CallStackFrame[]]$Callstack = (Get-PSCallStack),
 
-        $TraceId = Get-WotelTraceId # New-GuidV5 -Name "$($Callstack[-2].Command) $($Callstack[-2].Arguments) $($Callstack[-2].InvocationInfo.HistoryId)"
+        [switch]$PassThru
+    )
+    begin {
+        $TraceId = Get-WotelTraceId -Callstack $Callstack
+        $Singleton = Get-WotelSingleton
+
+        if(!$Singleton.traces.ContainsKey($TraceId)){
+            New-WotelTrace -Callstack $Callstack
+            $Singleton = Get-WotelSingleton
+        }
+
+
+        if ($PSCmdlet.ParameterSetName -eq 'custom') {
+            if (!$DisplayName) {
+                throw "DisplayName is required when defining custom span"
+            }
+            if (!$SpanId) {
+                $SpanId = $DisplayName
+            }
+            if (!$File) {
+                $File = $Callstack[0].scriptname
+            }
+        }
 
         if ($PSCmdlet.ParameterSetName -eq 'callStack') {
+            $Span = Get-WotelSpan -Callstack $Callstack
+            if($Span){
+                if($PassThru){
+                    return $Span
+                }
+                return
+            }
             $SpanId = Get-WotelSpanId -Callstack $Callstack
-        }
 
-        if($PSCmdlet.ParameterSetName -eq 'Custom' -and !$File){
+            $Arguments = $Callstack[0].Arguments
             $File = $Callstack[0].scriptname
+            if ([string]::IsNullOrEmpty($DisplayName)) {
+                $command = $Callstack[0].command
+                $functionName = $Callstack[0].FunctionName
+                if ([string]::IsNullOrEmpty($command) -and $functionName -eq '<scriptblock>') {
+                    $command = $functionName
+                }
+                elseif ([string]::IsNullOrEmpty($command)) {
+                    $command = $functionName -replace "<.+>", ""
+                }
+                $DisplayName = $command
+            }
         }
 
-        if ($global:wotel[$TraceId].spans.ContainsKey($SpanId)) {
+        if($Arguments){
+            $Arguments = $Arguments -join ", "
+        }
+    }
+    process {
+        if ($Singleton.traces[$TraceId].spans.ContainsKey($SpanId)) {
+            if($PassThru){
+                return $Singleton.traces[$TraceId].spans[$SpanId]
+            }
             return
         }
-        if ($PSCmdlet.ParameterSetName -eq 'callStack' -or [string]::IsNullOrEmpty($ParentId)) {
-            if ($Callstack.Count -gt 1) {
-                $parentId = Get-WotelSpanId -Callstack $Callstack[1..$Callstack.Count]
-            } else {
-                $parentId = $null
+
+        if([string]::IsNullOrEmpty($ParentId) -and $Callstack.Count -gt 1){
+            $parentId = Get-WotelSpanId -Callstack $Callstack[1..$Callstack.Count]
+        }
+
+        # $span = [Wotelspan]::new()
+        # $span.context.parentId = $ParentId
+        # $span.context.traceId = $TraceId
+        # $span.context.spanId = $SpanId
+        # $span.context.historyId = $Callstack[0].InvocationInfo.HistoryId.ToString()
+        # $span.name = $DisplayName
+        # $span.arguments = $Arguments
+        # $span.
+        $Span = [Wotelspan]@{
+            context = @{
+                historyId = $Callstack[0].InvocationInfo.HistoryId.ToString()
+                parentId    = $ParentId
+                traceId   = $TraceId
+                spanId = $SpanId
+            }
+            name      = $DisplayName
+            arguments = $Arguments
+            # startTime = [datetime]::UtcNow
+            # endTime = $null
+            # events = [System.Collections.Generic.List[hashtable]]::new()
+            attributes = @{
+                file      = $File.FullName
+                OutputToConsole = $OutputToConsole
+                OutputToLogs    = $OutputToLogs
+                LineNumber = $Callstack[0].ScriptLineNumber
+                ModuleName = $Callstack[0].InvocationInfo.MyCommand.ModuleName
             }
         }
 
-        switch ($PSCmdlet.ParameterSetName) {
-            "Custom" {
-                $span = @{
-                    historyId = $Callstack[0].InvocationInfo.HistoryId.ToString()
-                    name      = $DisplayName
-                    arguments = $Arguments
-                    file      = $File.FullName
-                    id        = $SpanId
-                    parent    = $ParentId
-                }
-            }
-            "Callstack" {
-                # $SpanId = New-GuidV5 -Name "$($Callstack[-2].Command) $($Callstack[-2].Arguments) $($Callstack[-2].InvocationInfo.HistoryId)"
-                if ([string]::IsNullOrEmpty($DisplayName)) {
-                    $command = $Callstack[0].command
-                    $functionName = $Callstack[0].FunctionName
-                    if ([string]::IsNullOrEmpty($command) -and $functionName -eq '<scriptblock>') {
-                        $command = $functionName
-                    } elseif ([string]::IsNullOrEmpty($command)) {
-                        $command = $functionName -replace "<.+>", ""
-                    }
-                } else {
-                    $command = $DisplayName
-                }
+        [void]$Singleton.traces[$TraceId].spans.Add($Span.context.spanId, $span)
 
-                $span = @{
-                    name      = $command
-                    arguments = $Callstack[0].Arguments
-                    File      = $Callstack[0].scriptname
-                    id        = $SpanId
-                    parent    = $parentId
-                    historyId = $Callstack[0].InvocationInfo.HistoryId.ToString()
-                }
-            }
-        }
-        $span.startUtc = [datetime]::UtcNow
-        $span.endUtc = $null #will be set when the span is ended.. not really used
-        $span.events = [System.Collections.Generic.List[hashtable]]::new()
-
-        $span.options = @{
-            OutputToConsole = $OutputToConsole
-            IgnoreLogs = $IgnoreLogs
+        if ($PassThru) {
+            Write-Output $Singleton.traces[$TraceId].spans[$Span.context.spanId]
         }
 
-        $span.scopeAttributes = @{
-            path = $File.FullName
-            CommandHistoryId = $Callstack[0].InvocationInfo.HistoryId.ToString()
-            ScriptLineNumber = $Callstack[0].InvocationInfo.ScriptLineNumber
-            ModuleName = $Callstack[0].InvocationInfo.MyCommand.ModuleName
+        if ($span.attributes.optionOutputToLogs -eq "Enabled") {
+            Write-WotelLog -Body "Started span - Name:$($span.name) - arguments: $($span.arguments)" -Severity trace -SpanId $Span.context.spanId
+            # return
         }
 
-        [void]$global:wotel.$TraceId.spans.Add($span.id, $span)
-
-        if($span.options.IgnoreLogs -eq "Enabled"){
-            return
-        }
-        
-        New-WotelLog -Body "Started span - Name: $($span.name) - arguments: $($span.arguments)" -Severity trace -SpanId $Span.id 
     }
     end {}
 }
+
+# New-WotelSpan
 
 # New-WotelSpan
